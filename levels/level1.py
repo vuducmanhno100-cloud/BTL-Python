@@ -3,6 +3,8 @@
 #   tương ứng với 1 vật thể được import từ thư mục assests
 # - level_editor xuất ma trận ra file levels/level.data/level1_data
 # - File này import ma trận đó, duyệt ma trận và tải tile tương ứng lên màn hình
+# - Gameplay thuần né tránh: nhân vật không tấn công, phải nhảy né quái vật
+#   và chướng ngại vật để đi tới cờ đích
 # =====================================================================
 import pygame # type: ignore
 from pygame.locals import * # type: ignore
@@ -58,12 +60,9 @@ background_img = pygame.transform.scale(background_img, (screen_with, screen_hei
 #load sound
 try:
     jump_music = pygame.mixer.Sound('assests/sfx/gamesfx/playersfx/jump.wav')
-    attack_music = pygame.mixer.Sound('assests/sfx/gamesfx/playersfx/female/normal-attack.mp3')
     jump_music.set_volume(1.5)  # Đặt âm lượng mặc định 
-    attack_music.set_volume(0.3)
 except pygame.error as e:
     print(f"Không thể tải nhạc game: {e}")
-    attack_music = None
     jump_music = None
 
 #Ảnh số sao nhận được khi chơi xong
@@ -290,25 +289,9 @@ class Player():
                 self.counter += 1
                 self.direction = 1
             
-            # Xử lý đòn tấn công 1 
-            if key[pygame.K_z] and not self.attacking and self.attack_cooldown == 0 and not key[pygame.K_x]:
-                self.attacking = True
-                self.attack_frame = 0
-                self.attack_timer = 0
-                self.attack_cooldown = 20  # delay giữa 2 đòn
-                attack_music.play()
-                
-            # Xử lý đòn tấn công 2 
-            if key[pygame.K_x] and not self.attacking2 and self.attack_cooldown2 == 0 and not key[pygame.K_z]:
-                self.attacking2 = True
-                self.attack_frame2 = 0
-                self.attack_timer2 = 0
-                self.attack_cooldown2 = 20  # delay giữa 2 đòn    
-                attack_music.play()
-    
             # Tạo animation cho nhân vật thông qua frame list:
             # ban đầu (không nhấn nút) nhân vật đứng yên với ảnh idle
-            if not (key[pygame.K_a] or key[pygame.K_d]) and not self.in_air and not self.attacking and not self.attacking2:
+            if not (key[pygame.K_a] or key[pygame.K_d]) and not self.in_air:
                 self.counter = 0
                 self.index = 0
                 if self.direction == 1:
@@ -339,46 +322,6 @@ class Player():
                 if self.direction == -1:
                     self.image = self.images_left[self.index]
                     
-            # Animation tấn công 1 
-            if self.attacking:
-                self.attack_timer += 1
-                if self.attack_timer >= 1 :  # điều chỉnh thời gian hiện mỗi frame
-                    self.attack_timer = 0
-                    self.attack_frame += 1
-                    if self.attack_frame >= len(self.images_attack_right):
-                        self.attacking = False
-                        self.attack_frame = 0
-                        self.offset_x = 0
-                    else:
-                        if self.direction == 1:
-                            self.image = self.images_attack_right[self.attack_frame]
-                        elif self.direction == -1:
-                            self.image = self.images_attack_left[self.attack_frame]
-                        else:
-                            self.image = self.images_attack_right[self.attack_frame]
-                            
-            # Animation tấn công 2
-            if self.attacking2:
-                self.attack_timer2 += 1
-                if self.attack_timer2 >= 1 :  # điều chỉnh thời gian hiện mỗi frame
-                    self.attack_timer2 = 0
-                    self.attack_frame2 += 1
-                    if self.attack_frame2 >= len(self.images_attack_right2):
-                        self.attacking2 = False
-                        self.attack_frame2 = 0
-                    else:
-                        if self.direction == 1:
-                            self.image = self.images_attack_right2[self.attack_frame2]
-                        elif self.direction == -1:
-                            self.image = self.images_attack_left2[self.attack_frame2]    
-                        else:
-                            self.image = self.images_attack_right2[self.attack_frame2] 
-            # Hồi đòn
-            if self.attack_cooldown > 0:
-                self.attack_cooldown -= 1
-                  
-            if self.attack_cooldown2 > 0:
-                self.attack_cooldown2 -= 1            
             # Tạo trọng lực: mỗi frame cộng thêm vào vel_y để kéo nhân vật xuống,
             # nhờ đó khi nhảy nhân vật không bay cao mãi (tốc độ rơi tối đa = 10)
             self.vel_y += 1
@@ -386,21 +329,6 @@ class Player():
                 self.vel_y = 10
             dy += self.vel_y
             
-            # Tấn công quái vật
-            if (self.attacking and self.attack_frame <= 10) or (self.attacking2 and self.attack_frame2 <= 7):
-                attack_rect = pygame.Rect(self.rect)
-                if self.direction == 1:
-                    attack_rect.x += 20
-                    attack_rect.width += 30
-                else:
-                    attack_rect.x -= 30
-                    attack_rect.width += 30
-
-                enemy_groups = [blue_slime_group, green_slime_group, skeleton_group]
-                for group in enemy_groups:
-                    for enemy in group:
-                        if attack_rect.colliderect(enemy.hitbox):
-                            enemy.kill()
             # Xử lý va chạm với địa hình
             for tile in world.tile_list:
                 # Va chạm theo chiều dọc
@@ -419,7 +347,8 @@ class Player():
                 #Xử lý va chạm với Lava 
                 if pygame.sprite.spritecollide(self,lava_group,False):
                     game_over = True
-                #Xử lý va chạm với Enemy
+                # Xử lý va chạm với Enemy: nhân vật không có đòn tấn công,
+                # chạm vào quái vật là thua -> người chơi phải nhảy né tránh để đi tiếp
                 if pygame.sprite.spritecollide(self,blue_slime_group,False) or pygame.sprite.spritecollide(self,green_slime_group,False) or pygame.sprite.spritecollide(self,skeleton_group,False) :
                     game_over = True
                 #Xử lý va chạm với Flag
@@ -455,22 +384,8 @@ class Player():
         self.images_left = [] #list frame di sang trai
         self.images_jump_right = [] #list frame nhảy sang phải
         self.images_jump_left = [] #list frame nhảy sang trái
-        self.images_attack_right = []
-        self.images_attack_left = []
-        self.images_attack_right2 = []
-        self.images_attack_left2 = []
-        
         self.index = 0 #thu tu frame
         self.counter = 0 #thoi gian lam moi frame
-        self.attack_frame = 0
-        self.attack_timer = 0
-        self.attack_cooldown = 0
-        self.attacking = False
-        
-        self.attack_frame2 = 0
-        self.attack_timer2 = 0
-        self.attack_cooldown2 = 0
-        self.attacking2 = False
         # Frame list chạy: tải lần lượt các ảnh run1 -> run6 để tạo animation
         for num in range(1,7):
             img_right = pygame.image.load(f'assests/character/male/run/run{num}.png')
@@ -493,20 +408,6 @@ class Player():
         self.idle_image_left = pygame.transform.flip(self.idle_image_right, True, False)
         self.image = self.idle_image_right
         
-        #Load các frame tấn công
-        for num in range (1,10):
-            image_attack_right = pygame.image.load(f'assests/character/male/attack1/at{num}.png')
-            # Frame tấn công phải
-            self.images_attack_right.append(image_attack_right)
-            # Frame tấn công trái (flip)
-            image_attack_left = pygame.transform.flip(image_attack_right, True, False)
-            self.images_attack_left.append(image_attack_left)
-
-        for num in range (1,8):
-            image_attack_right2 = pygame.image.load (f'assests/character/male/attack2/at_{num}.png')
-            image_attack_left2 = pygame.transform.flip(image_attack_right2, True, False)
-            self.images_attack_right2.append(image_attack_right2)
-            self.images_attack_left2.append (image_attack_left2)
         # Tạo hitbox nhỏ hơn sprite
         self.width = 22  
         self.height = 55 

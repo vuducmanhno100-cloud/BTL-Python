@@ -163,7 +163,7 @@ class Game:
         
         # Số màn chơi của game (chỉ có level 1 và level 2)
         self.max_level = 2
-        # Danh sách màn chơi đã mở khóa (ban đầu chỉ mở màn 1)
+        # Danh sách màn chơi đã mở khóa
         self.unlocked_levels = [1]
         # Màn chơi hiện tại
         self.current_level = 1
@@ -717,7 +717,6 @@ class Game:
         # Các phím điều khiển
         instructions = [
             ["A D:", "Di chuyển trái / phải"],
-            ["Z X:", "Tấn công"],
             ["W:", "Nhảy"],
             ["Shop:", "Người chơi dùng tiền để đổi vật phẩm"]
         ]
@@ -742,7 +741,7 @@ class Game:
         objective_rect = objective_title.get_rect(x=panel_x + 40, y=panel_y + 300)
         self.screen.blit(objective_title, objective_rect)
         
-        objective_text = "Người chơi sẽ vượt chướng ngại vật và đi tới đích để tới màn tiếp theo."
+        objective_text = "Người chơi nhảy né tránh quái vật, vượt chướng ngại vật và đi tới đích để tới màn tiếp theo."
         max_text_width = panel_width - 80 
         wrapped_lines = self.wrap_text(objective_text, self.font_small, max_text_width)
 
