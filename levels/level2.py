@@ -834,8 +834,8 @@ class Enemy(pygame.sprite.Sprite):
                 else:
                     self.jump_delay += 1  # Đếm thời gian chờ nếu không nhảy
                 
-            # Tạo trọng lực: mỗi frame cộng thêm vào vel_y để kéo nhân vật xuống,
-            # nhờ đó khi nhảy nhân vật không bay cao mãi (tốc độ rơi tối đa = 10)
+            # Trọng lực cho quái vật: mỗi frame cộng thêm vào vel_y để kéo quái vật xuống,
+            # để quái vật luôn rơi về mặt đất
             if not self.on_ground:
                 self.vel_y += 0.4
                 if self.vel_y > 8:
@@ -860,8 +860,8 @@ class Enemy(pygame.sprite.Sprite):
         elif self.enemy_type == 'skeleton':
             dx = self.move_speed * self.direction
             
-            # Tạo trọng lực: mỗi frame cộng thêm vào vel_y để kéo nhân vật xuống,
-            # nhờ đó khi nhảy nhân vật không bay cao mãi (tốc độ rơi tối đa = 10)
+            # Trọng lực cho quái vật: mỗi frame cộng thêm vào vel_y để kéo quái vật xuống,
+            # để quái vật luôn rơi về mặt đất
             self.vel_y = 5  # Tốc độ rơi cố định
             dy = self.vel_y
             
