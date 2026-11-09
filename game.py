@@ -2,7 +2,6 @@ import sys
 import pygame #type: ignore
 from pygame.locals import* #type: ignore
 import random
-import webbrowser 
 import io
 import sys
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -162,6 +161,8 @@ class Game:
         except pygame.error as e:
             print(f"Không thể tải hình ảnh cho màn hình chọn màn chơi: {e}")
         
+        # Số màn chơi của game (chỉ có level 1 và level 2)
+        self.max_level = 2
         # Danh sách màn chơi đã mở khóa (ban đầu chỉ mở màn 1)
         self.unlocked_levels = [1]
         # Màn chơi hiện tại
@@ -354,7 +355,8 @@ class Game:
             self.state = "about"
             
         if self.faq_button.draw():
-            webbrowser.open("https://www.facebook.com/namdory13")
+            # Nút FAQ mở trang hướng dẫn chơi
+            self.state = "about"
 
         if self.quit_button.draw():
             print("Nút Quit được nhấn!")
@@ -386,14 +388,14 @@ class Game:
         padding_y = 50
         
         # Tính toán vị trí bắt đầu để căn giữa lưới màn chơi
-        total_width = 3 * level_width + 2 * padding_x
+        total_width = self.max_level * level_width + (self.max_level - 1) * padding_x
         start_x = (self.screen_width - total_width) // 2
-        start_y = 150
+        start_y = 230
         
-        # Vẽ các màn chơi (2 hàng, mỗi hàng 3 màn)
-        for row in range(2):
-            for col in range(3):
-                level_number = row * 3 + col + 1  # Số màn chơi từ 1-6
+        # Vẽ các màn chơi (1 hàng gồm 2 màn: level 1 và level 2)
+        for row in range(1):
+            for col in range(self.max_level):
+                level_number = col + 1  # Số màn chơi từ 1-2
                 level_x = start_x + col * (level_width + padding_x)
                 level_y = start_y + row * (level_height + padding_y)
                 
@@ -455,18 +457,6 @@ class Game:
                         elif self.current_level == 2:
                             import levels.level2 as level2
                             self.preloaded_level = level2
-                        elif self.current_level == 3:
-                            import levels.level3 as level3
-                            self.preloaded_level = level3
-                        elif self.current_level == 4:
-                            import levels.level4 as level4
-                            self.preloaded_level = level4
-                        elif self.current_level == 5:
-                            import levels.level5 as level5
-                            self.preloaded_level = level5
-                        elif self.current_level == 6:
-                            import levels.level6 as level6
-                            self.preloaded_level = level6
 
                         # Hiển thị màn hình loading
                         self.show_loading_screen()
@@ -726,9 +716,9 @@ class Game:
         
         # Các phím điều khiển
         instructions = [
-            ["< >:", "Di chuyển"],
+            ["A D:", "Di chuyển trái / phải"],
             ["Z X:", "Tấn công"],
-            ["^:", "Nhảy"],
+            ["W:", "Nhảy"],
             ["Shop:", "Người chơi dùng tiền để đổi vật phẩm"]
         ]
         
@@ -999,36 +989,7 @@ class Game:
             self.screen.blit(line_text, line_rect)
             y_pos += 30  
         
-        y_pos += 20
-        
-        thanks_text = self.font_small2.render("Chúng em xin gửi lời cảm ơn chân thành đến Giảng Viên:", True, (255, 255, 150))
-        thanks_rect = thanks_text.get_rect(x=panel_x + 40, y=y_pos)
-        self.screen.blit(thanks_text, thanks_rect)
-        
-        y_pos += 30  
-        teacher_text = self.font_small2.render("Ninh Thị Thu Trang", True, self.white)
-        teacher_rect = teacher_text.get_rect(x=panel_x + 40, y=y_pos)
-        self.screen.blit(teacher_text, teacher_rect)
-        
-        y_pos += 40  
 
-        student_title = self.font_small2.render("Sinh viên thực hiện:", True, (255, 255, 150))
-        student_title_rect = student_title.get_rect(x=panel_x + 40, y=y_pos)
-        self.screen.blit(student_title, student_title_rect)
-        
-        students = [
-            "Nguyễn Đức Hải(C) - B22DCAT107",
-            "Đỗ Duy Nam - B22DCAT199",
-            "Nguyễn Quang Huy - B22DCAT143"
-        ]
-        
-        y_pos += 30 
-        for student in students:
-            student_text = self.font_small2.render(student, True, self.white)
-            student_rect = student_text.get_rect(x=panel_x + 40, y=y_pos)
-            self.screen.blit(student_text, student_rect)
-            y_pos += 30  
-    
     def run(self):
         # Phát nhạc menu khi bắt đầu game
         if self.menu_music and not self.music_playing:
@@ -1037,7 +998,7 @@ class Game:
             
         # Khởi tạo biến để lưu trữ level đã pre-load
         self.preloaded_level = None
-        self.score_rs = [0,0,0,0,0,0]
+        self.score_rs = [0, 0]  # Số sao đạt được của level 1 và level 2
         
         while True:
             # Tính toán delta time
@@ -1096,8 +1057,14 @@ class Game:
                     if score_tmp != 0:
                         if self.score_rs[self.current_level-1] < score_tmp:
                             self.score_rs[self.current_level-1] = score_tmp
-                        self.current_level += 1
-                        if self.unlocked_levels.count(self.current_level) == 0: self.unlocked_levels.append(self.current_level)
+                        if self.current_level < self.max_level:
+                            # Mở khóa màn tiếp theo
+                            self.current_level += 1
+                            if self.unlocked_levels.count(self.current_level) == 0: self.unlocked_levels.append(self.current_level)
+                        else:
+                            # Đã hoàn thành level cuối (level 2) -> quay về màn hình chọn màn
+                            check_continue = False
+                            return_to_select_level = True
                     if check_continue:
                         if self.current_level == 1:
                             import levels.level1 as level1
@@ -1105,18 +1072,6 @@ class Game:
                         elif self.current_level == 2:
                             import levels.level2 as level2
                             self.preloaded_level = level2
-                        elif self.current_level == 3:
-                            import levels.level3 as level3
-                            self.preloaded_level = level3
-                        elif self.current_level == 4:
-                            import levels.level4 as level4
-                            self.preloaded_level = level4
-                        elif self.current_level == 5:
-                            import levels.level5 as level5
-                            self.preloaded_level = level5
-                        elif self.current_level == 6:
-                            import levels.level6 as level6
-                            self.preloaded_level = level6    
                         self.show_loading_screen()
                         self.state = "game"
                     if return_to_select_level:

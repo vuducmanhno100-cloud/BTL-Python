@@ -1,3 +1,9 @@
+# ===================== LEVEL EDITOR - GAME WINDSTRIDE =====================
+# Tạo map theo dạng ma trận: những số trong ma trận tương ứng với các vật thể
+# được import từ assests. Sau khi tạo map, nhấn nút Save để xuất ra file
+# levels/level.data/level{number}_data (file dữ liệu chứa ma trận map).
+# Game hiện có 2 level nên editor chỉ cho chọn level 1 và 2.
+# ==========================================================================
 import pygame # type: ignore
 import pickle
 from os import path, makedirs
@@ -80,7 +86,7 @@ blue = (50, 50, 200)
 
 font = pygame.font.SysFont('Futura', 24)
 
-#create empty tile list
+# Tạo ma trận map rỗng (toàn số 0), mỗi phần tử là 1 ô tile
 world_data = []
 for row in range(rows):
 	r = [0] * cols
@@ -271,7 +277,8 @@ while run:
 	draw_text(f'Level: {level}', font, white, 10, (rows-1) * tile_size + 10)
 	
 	# Draw level navigation buttons
-	if level_up_button.draw():
+	# Chỉ có 2 level nên không cho tăng quá level 2
+	if level_up_button.draw() and level < 2:
 		level += 1
 		print(f"Changed to level {level}")
 		world_data = load_level(level)
@@ -283,7 +290,7 @@ while run:
 	
 	# Draw save & cancel buttons
 	if save_button.draw():
-		# Save level data to the specific folder
+		# Xuất ma trận map ra file level{number}_data để import vào từng level
 		level_file = path.join(level_data_dir, f'level{level}_data')
 		pickle_out = open(level_file, 'wb')
 		pickle.dump(world_data, pickle_out)

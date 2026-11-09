@@ -1,3 +1,9 @@
+# ===================== GAME WINDSTRIDE - LEVEL 1 =====================
+# - Map được tạo theo dạng ma trận trong level_editor, mỗi số trong ma trận
+#   tương ứng với 1 vật thể được import từ thư mục assests
+# - level_editor xuất ma trận ra file levels/level.data/level1_data
+# - File này import ma trận đó, duyệt ma trận và tải tile tương ứng lên màn hình
+# =====================================================================
 import pygame # type: ignore
 from pygame.locals import * # type: ignore
 import pickle
@@ -250,6 +256,7 @@ def draw_grid():
     for line in range(vertical_lines):
         pygame.draw.line(screen, (255,255,255), (line * tile_size, 0), (line * tile_size, screen_height))
         
+# Tạo class nhân vật với vị trí xuất hiện (x, y truyền vào khi khởi tạo)
 class Player():
     def __init__(self, x, y):
         self.reset(x,y)
@@ -263,8 +270,8 @@ class Player():
             # Lấy trạng thái phím
             key = pygame.key.get_pressed()
             
-            # Xử lý nhảy
-            if key[pygame.K_UP] and not self.jumped and not self.in_air:
+            # Nhảy (phím W): gán vận tốc âm cho vel_y để nhân vật bật lên
+            if key[pygame.K_w] and not self.jumped and not self.in_air:
                 self.vel_y = -15
                 self.jumped = True
                 self.in_air = True
@@ -272,12 +279,13 @@ class Player():
                 self.index = 0
                 jump_music.play()
                 
-            # Xử lý di chuyển trái/phải
-            if key[pygame.K_LEFT]:
+            # Thiết lập di chuyển trái (A) / phải (D): cộng khoảng cách dx
+            # mỗi lần nhấn hoặc giữ nút di chuyển
+            if key[pygame.K_a]:
                 dx -= 4
                 self.counter += 1
                 self.direction = -1
-            if key[pygame.K_RIGHT]:
+            if key[pygame.K_d]:
                 dx += 4
                 self.counter += 1
                 self.direction = 1
@@ -298,8 +306,9 @@ class Player():
                 self.attack_cooldown2 = 20  # delay giữa 2 đòn    
                 attack_music.play()
     
-            # Xử lý animation
-            if not (key[pygame.K_LEFT] or key[pygame.K_RIGHT]) and not self.in_air and not self.attacking and not self.attacking2:
+            # Tạo animation cho nhân vật thông qua frame list:
+            # ban đầu (không nhấn nút) nhân vật đứng yên với ảnh idle
+            if not (key[pygame.K_a] or key[pygame.K_d]) and not self.in_air and not self.attacking and not self.attacking2:
                 self.counter = 0
                 self.index = 0
                 if self.direction == 1:
@@ -309,7 +318,7 @@ class Player():
                 else:
                     self.image = self.idle_image_right
 
-            # Animation nhảy và chạy
+            # Khi nhấn nút di chuyển / nhảy, nhân vật chuyển động dựa vào các frame chạy / nhảy
             if self.in_air:
                 if self.counter > jump_cooldown:
                     self.counter = 0
@@ -370,7 +379,8 @@ class Player():
                   
             if self.attack_cooldown2 > 0:
                 self.attack_cooldown2 -= 1            
-            # Áp dụng trọng lực
+            # Tạo trọng lực: mỗi frame cộng thêm vào vel_y để kéo nhân vật xuống,
+            # nhờ đó khi nhảy nhân vật không bay cao mãi (tốc độ rơi tối đa = 10)
             self.vel_y += 1
             if self.vel_y > 10:
                 self.vel_y = 10
@@ -461,7 +471,7 @@ class Player():
         self.attack_timer2 = 0
         self.attack_cooldown2 = 0
         self.attacking2 = False
-        # Load frames chạy
+        # Frame list chạy: tải lần lượt các ảnh run1 -> run6 để tạo animation
         for num in range(1,7):
             img_right = pygame.image.load(f'assests/character/male/run/run{num}.png')
             img_right = pygame.transform.scale(img_right, (41, 68))
@@ -477,7 +487,7 @@ class Player():
             self.images_jump_right.append(img_jump_right)
             self.images_jump_left.append(img_jump_left)
 
-        # Load frame đứng yên
+        # Frame đứng yên (idle) - trạng thái ban đầu của nhân vật
         self.idle_image_right = pygame.image.load('assests/character/male/idle/Idle.png')
         self.idle_image_right = pygame.transform.scale(self.idle_image_right, (41, 68))
         self.idle_image_left = pygame.transform.flip(self.idle_image_right, True, False)
@@ -513,6 +523,7 @@ class Player():
         self.direction = 0
         self.in_air = False  #Biến kiểm tra nhân vật có đang trong không trung
 
+# Tạo class World để khai báo và triển khai các tile set cho ma trận map
 class World():
     def __init__(self,data):
         self.tile_list = []
@@ -522,7 +533,9 @@ class World():
         self.animation_count = 0  # Biến đếm cho animation
         self.animation_index = 0  # Index hiện tại của animation
         
-        # Tải tất cả các hình ảnh cần thiết FIRST
+        # Import các tile cần thiết từ assests (mỗi số trong ma trận ứng với 1 tile)
+        # Lưu ý: các chỉ số (kích thước, scale) trong level_editor không ảnh hưởng tới tile
+        # ở level này, chỉ có vị trí (hàng, cột) của tile trong ma trận là được sử dụng
         ground_img = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_12.png') # Ground tile (1)
         dirt_img = pygame.image.load('assests/tileset/Forest Tileset/1 Tiles/Tile_02.png') # Dirt blocks (2)
         grass_img = pygame.image.load('assests/objects/Plant Animations/Plant 1/Plant1_00000.png') # Plant1 (3)
@@ -594,7 +607,9 @@ class World():
             blue_flower2_frames.append(pygame.transform.scale(img, (tile_size*3, tile_size*3)))
         self.animation_frames['blue_flower2'] = blue_flower2_frames
         
-        row_count = 0  
+        # Tạo vòng lặp duyệt qua ma trận: gặp số tương ứng thì tải tile lên
+        # tại vị trí (cột * tile_size, hàng * tile_size)
+        row_count = 0
         for row in data:
             col_count = 0 # Biến đếm cột hiện tại
             for tile in row:
@@ -918,7 +933,8 @@ class Enemy(pygame.sprite.Sprite):
                 else:
                     self.jump_delay += 1  # Đếm thời gian chờ nếu không nhảy
                 
-            # Áp dụng trọng lực
+            # Tạo trọng lực: mỗi frame cộng thêm vào vel_y để kéo nhân vật xuống,
+            # nhờ đó khi nhảy nhân vật không bay cao mãi (tốc độ rơi tối đa = 10)
             if not self.on_ground:
                 self.vel_y += 0.4
                 if self.vel_y > 8:
@@ -943,7 +959,8 @@ class Enemy(pygame.sprite.Sprite):
         elif self.enemy_type == 'skeleton':
             dx = self.move_speed * self.direction
             
-            # Áp dụng trọng lực
+            # Tạo trọng lực: mỗi frame cộng thêm vào vel_y để kéo nhân vật xuống,
+            # nhờ đó khi nhảy nhân vật không bay cao mãi (tốc độ rơi tối đa = 10)
             self.vel_y = 5  # Tốc độ rơi cố định
             dy = self.vel_y
             
@@ -1047,7 +1064,8 @@ class Flag(pygame.sprite.Sprite):
             img = self.flag_frames[self.animation_index]
             self.image = pygame.transform.scale(img, (int(tile_size * 1.5), int(tile_size * 2.25)))
 
-# Hàm để tải dữ liệu level từ file
+# Import file ma trận level1_data (xuất từ level_editor) vào level cụ thể
+# Nếu bị lỗi import / không tìm thấy file thì tạo 1 ma trận cơ sở (chỉ có hàng đất dưới cùng)
 def load_level_data(self):
     level_file = f'levels/level.data/level1_data'
     try:
@@ -1059,7 +1077,7 @@ def load_level_data(self):
             return data
         else:
             print(f"File not found: {level_file}")
-            # Trả về dữ liệu mặc định nếu không tìm thấy file
+            # Ma trận cơ sở: trả về khi không import được file dữ liệu map
             return [
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1083,7 +1101,7 @@ def load_level_data(self):
         print(f"Error loading level: {e}")
         return None
 
-#Lop nhan vat
+# Khởi tạo nhân vật tại vị trí xuất hiện ban đầu
 player = Player(35, screen_height - 210) #Vị trí khởi đầu của nhân vật
 
 
@@ -1093,7 +1111,7 @@ coin_group.add(score_coin)
 score_rune = Rune(tile_size + 130, 25, True)  # Đặt is_icon=True
 rune_group.add(score_rune)
 
-# Tải dữ liệu level từ file
+# Import ma trận map và tạo World để tải các tile lên
 world_data = load_level_data(1)
 world = World(world_data)
 
